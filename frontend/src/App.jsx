@@ -6,6 +6,7 @@ import Profile from './components/Profile.jsx';
 import Login from './components/Login.jsx';
 import UploadVideo from './components/uploadVideo.jsx';
 import Cookies from 'js-cookie';
+import Shorts from './components/Shorts.jsx';
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import "bootstrap-icons/font/bootstrap-icons.css";
@@ -44,6 +45,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/reels" element={<Shorts />} />
               <Route path="/uploadvideo" element={<UploadVideo/>} />
               <Route path="/login" element={<Navigate to="/" />} />
               <Route path="*" element={<Navigate to="/" />} />
