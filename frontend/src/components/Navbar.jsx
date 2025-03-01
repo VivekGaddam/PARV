@@ -40,6 +40,13 @@ const CombinedNavbar = () => {
       console.error("Profile failed:", error);
     }
   }
+  const handleShorts = async() => {
+    try{
+      navigate("/reels");
+    } catch (error){
+      console.error("Reels failed:",error);
+    }
+  }
 
   return (
     <div className="app-container" style={{ zIndex: 1 }}>
@@ -108,7 +115,7 @@ const CombinedNavbar = () => {
           </svg>
           {expanded && <span>Home</span>}
         </div>
-        <div className="sidebar-item">
+        <div className="sidebar-item" onClick={()=>navigate("/reels")}>
           <svg viewBox="0 0 24 24" height="24" width="24">
             <path d="M10,14.65V9.35L15,12L10,14.65ZM12,9c1.1,0 2,-0.9 2,-2c0,-1.1 -0.9,-2 -2,-2c-1.1,0 -2,0.9 -2,2C10,8.1 10.9,9 12,9ZM12,14c-1.1,0 -2,0.9 -2,2c0,1.1 0.9,2 2,2c1.1,0 2,-0.9 2,-2C14,14.9 13.1,14 12,14ZM12,19c-1.1,0 -2,0.9 -2,2c0,1.1 0.9,2 2,2c1.1,0 2,-0.9 2,-2C14,19.9 13.1,19 12,19ZM18,14c-1.1,0 -2,0.9 -2,2c0,1.1 0.9,2 2,2c1.1,0 2,-0.9 2,-2C20,14.9 19.1,14 18,14ZM18,9c1.1,0 2,-0.9 2,-2c0,-1.1 -0.9,-2 -2,-2c-1.1,0 -2,0.9 -2,2C16,8.1 16.9,9 18,9ZM18,19c-1.1,0 -2,0.9 -2,2c0,1.1 0.9,2 2,2c1.1,0 2,-0.9 2,-2C20,19.9 19.1,19 18,19ZM6,14c-1.1,0 -2,0.9 -2,2c0,1.1 0.9,2 2,2c1.1,0 2,-0.9 2,-2C8,14.9 7.1,14 6,14ZM6,9c1.1,0 2,-0.9 2,-2c0,-1.1 -0.9,-2 -2,-2c-1.1,0 -2,0.9 -2,2C4,8.1 4.9,9 6,9ZM6,19c-1.1,0 -2,0.9 -2,2c0,1.1 0.9,2 2,2c1.1,0 2,-0.9 2,-2C8,19.9 7.1,19 6,19Z"></path>
           </svg>
