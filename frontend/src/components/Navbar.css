@@ -1,9 +1,12 @@
+nav{
+  background-color: black;
+}
 .sidebar {
     position: fixed;
     top: 0;
     left: 0;
     height: 100vh;
-    background-color: #0f0f0f;
+    background-color: #000000;
     color: #ffffff;
     overflow-y: auto;
     overflow-x: hidden;

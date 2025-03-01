@@ -1,26 +1,37 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const mongoose = require("mongoose");
-const cookieParser = require("cookie-parser");
-const passport = require("passport");
-const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
-const User = require("./models/User");
+import dotenv from "dotenv";
+dotenv.config();
+
+import express from "express";
+import cors from "cors";
+import mongoose from "mongoose";
+import multer from "multer";
+import cookieParser from "cookie-parser";
+import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+
+import User from "./models/User.js";
+import Video from "./models/Video.js";
 
 const app = express();
+
 app.use(express.json());
-app.use(cors({ 
-  origin: "http://localhost:5173", 
-  credentials: true 
-}));
+app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(cookieParser());
+app.use(passport.initialize());
 
 mongoose
   .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log("✅ MongoDB Connected"))
   .catch((err) => console.log("❌ MongoDB Error:", err));
+
+// Multer Storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
+});
+const upload = multer({ storage });
 
 passport.use(
   new GoogleStrategy(
@@ -44,9 +55,7 @@ passport.use(
           });
         }
 
-
         const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "24h" });
-
         return done(null, { user, token });
       } catch (err) {
         return done(err, null);
@@ -54,8 +63,6 @@ passport.use(
     }
   )
 );
-
-app.use(passport.initialize());
 
 app.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 
@@ -81,91 +88,7 @@ app.get("/auth/google/callback",
   }
 );
 
-app.post("/register", async (req, res) => {
-  const { name, email, password } = req.body;
-
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: "All fields are required" });
-  }
-
-  try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = new User({
-      name,
-      username: email.split("@")[0],
-      email,
-      password: hashedPassword,
-    });
-
-    await newUser.save();
-
-    const token = jwt.sign({ id: newUser._id, email: newUser.email }, process.env.JWT_SECRET, { expiresIn: "24h" });
-
-    res.cookie("auth_token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000, 
-    });
-    
-    res.cookie("token", token, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000,
-    });
-
-    res.json({ token });
-  } catch (error) {
-    console.error("Registration error:", error);
-    res.status(500).json({ message: "Server error during registration" });
-  }
-});
-app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-  
-  try {
-    const user = await User.findOne({ email });
-
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
-
-    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "24h" });
-    res.cookie("auth_token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000, 
-    });
-    
-    res.cookie("token", token, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000, 
-    });
-
-    res.json({ token });
-  } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({ message: "Server error during login" });
-  }
-});
-
-app.get("/logout", (req, res) => {
-  res.clearCookie("token");
-  res.clearCookie("auth_token");
-  res.json({ message: "Logged out" });
-});
-
-app.get("/profile", (req, res) => {
+app.get("/profile", async (req, res) => {
   const token = req.cookies.auth_token;
   if (!token) return res.status(401).json({ message: "Unauthorized" });
 
@@ -174,26 +97,53 @@ app.get("/profile", (req, res) => {
 
     try {
       const user = await User.findById(decoded.id).select("-password");
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
+      if (!user) return res.status(404).json({ message: "User not found" });
       res.json({ user });
     } catch (error) {
-      console.error("Profile fetch error:", error);
       res.status(500).json({ message: "Server error" });
     }
   });
 });
 
-app.get("/verify-token", (req, res) => {
-  const token = req.cookies.auth_token;
-  if (!token) return res.status(401).json({ valid: false });
+// Video Upload Route
+app.post("/upload", upload.single("video"), async (req, res) => {
+  try {
+    const token = req.cookies.auth_token;
+    if (!token) return res.status(401).json({ message: "Unauthorized" });
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(200).json({ valid: false });
-    res.json({ valid: true, userId: decoded.id });
-  });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const { title, description } = req.body;
+    const videoUrl = `/uploads/${req.file.filename}`;
+    const newVideo = new Video({ title, description, videoUrl, user: user._id });
+
+    await newVideo.save();
+    res.status(201).json({ message: "Video uploaded successfully!", video: newVideo });
+  } catch (error) {
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
+
+app.get("/history", (req, res) => {
+  res.json({ message: "User history feature coming soon" });
+});
+
+app.get("/yourvideos", async (req, res) => {
+  try {
+    const token = req.cookies.auth_token;
+    if (!token) return res.status(401).json({ message: "Unauthorized" });
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const videos = await Video.find({ user: decoded.id });
+    res.json({ videos });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

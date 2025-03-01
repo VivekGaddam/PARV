@@ -22,7 +22,6 @@ export default function Login({ setToken }) {
       setToken(token);
       navigate("/");
     }
-    
     const checkTokenFromRedirect = () => {
       const token = Cookies.get("token");
       if (token) {
@@ -73,6 +72,7 @@ export default function Login({ setToken }) {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="Login d-flex align-items-center justify-content-center vh-100 bg-black">
