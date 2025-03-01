@@ -4,8 +4,7 @@ import './Home.css';
 function Home() {
     return (
         <div className="content">
-            <h1>Main Content Area</h1>
-            <p>This is where your video content would appear</p>
+            
             
             <div className="video-grid">
                 {Array(12).fill().map((_, i) => (

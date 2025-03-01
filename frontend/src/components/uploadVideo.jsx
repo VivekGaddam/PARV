@@ -6,14 +6,13 @@ const UploadVideo = ({ closeModal }) => {
     const [video, setVideo] = useState(null);
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
+    const [uploading, setUploading] = useState(false);
     const navigate = useNavigate();
     
     useEffect(() => {
-        // Make sure body has modal-open class for proper styling
         document.body.classList.add("modal-open");
         
         return () => {
-            // Clean up on unmount
             document.body.classList.remove("modal-open");
             const modalBackdrop = document.querySelector(".modal-backdrop");
             if (modalBackdrop) modalBackdrop.remove();
@@ -22,6 +21,9 @@ const UploadVideo = ({ closeModal }) => {
     
     const handleUpload = async () => {
         if (!video) return alert("Please select a video file.");
+        if (!title.trim()) return alert("Please enter a title.");
+        
+        setUploading(true);
         
         const formData = new FormData();
         formData.append("video", video);
@@ -29,19 +31,36 @@ const UploadVideo = ({ closeModal }) => {
         formData.append("description", description);
         
         try {
-            const response = await fetch("/api/upload", {
+            console.log("Sending upload request");
+            // Add the full base URL to the API endpoint
+            const response = await fetch("http://localhost:5000/api/upload", {
                 method: "POST",
                 body: formData,
+                credentials: "include"
             });
             
+            console.log("Response status:", response.status);
+            console.log("Response type:", response.headers.get("content-type"));
+            
             if (response.ok) {
+                alert("Video uploaded successfully!");
                 closeModal();  
                 navigate("/"); 
             } else {
-                alert("Upload failed!");
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    const errorData = await response.json();
+                    alert(`Upload failed: ${errorData.message || errorData.error || "Unknown error"}`);
+                } else {
+                    const textError = await response.text();
+                    alert(`Upload failed: ${textError || "Unknown error"}`);
+                }
             }
         } catch (error) {
             console.error("Error uploading video:", error);
+            alert(`Upload error: ${error.message}`);
+        } finally {
+            setUploading(false);
         }
     };
     
@@ -49,7 +68,7 @@ const UploadVideo = ({ closeModal }) => {
         if (typeof closeModal === 'function') {
             closeModal();
         }
-        navigate("/"); // Navigate immediately without timeout
+        navigate("/");
     };
     
     return (
@@ -57,7 +76,7 @@ const UploadVideo = ({ closeModal }) => {
             className="modal fade show"
             tabIndex="-1"
             style={{ display: "block", background: "rgba(0,0,0,0.5)" }}
-            onClick={handleCloseAndNavigate} // Clicking outside closes & navigates
+            onClick={handleCloseAndNavigate}
         >
             <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-content p-3">
@@ -93,10 +112,20 @@ const UploadVideo = ({ closeModal }) => {
                         </div>
                     </div>
                     <div className="modal-footer">
-                        <button className="btn btn-danger" onClick={handleCloseAndNavigate}>
+                        <button 
+                            className="btn btn-danger" 
+                            onClick={handleCloseAndNavigate}
+                            disabled={uploading}
+                        >
                             Cancel
                         </button>
-                        <button className="btn btn-primary" onClick={handleUpload}>Upload</button>
+                        <button 
+                            className="btn btn-primary" 
+                            onClick={handleUpload}
+                            disabled={uploading}
+                        >
+                            {uploading ? "Uploading..." : "Upload"}
+                        </button>
                     </div>
                 </div>
             </div>
