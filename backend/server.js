@@ -148,12 +148,10 @@ app.post("/api/upload", upload.single("video"), async (req, res) => {
     console.log("Files:", req.file ? req.file.filename : "No file uploaded");
     console.log("Body:", req.body);
 
-    // Check if file was uploaded
     if (!req.file) {
       return res.status(400).json({ message: "No video file provided" });
     }
 
-    // Check token from cookies
     const token = req.cookies.auth_token;
     console.log("Token:", token ? "Present" : "Missing");
     
@@ -244,25 +242,21 @@ app.get("/yourvideos", async (req, res) => {
   }
 });
 
-// Health check route
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK", message: "Server is running" });
 });
 
 app.get("/api/feed", async (req, res) => {
   try {
-    // Fetch videos from the database and populate the user details
     const videos = await Video.find()
-      .populate('user', 'name username profilePic') // Populate user details
-      .sort({ createdAt: -1 }) // Sort by latest videos first
-      .select('title videoUrl createdAt user'); // Select only necessary fields
-
-    // Map the videos to include user_name, title, and date
+      .populate('user', 'name username profilePic') 
+      .sort({ createdAt: -1 }) 
+      .select('title videoUrl createdAt user'); 
     const feedData = videos.map(video => ({
       title: video.title,
       videoUrl: video.videoUrl,
       date: video.createdAt,
-      user_name: video.user.name, // Include the user's name
+      user_name: video.user.name, 
     }));
 
     res.status(200).json({ videos: feedData });

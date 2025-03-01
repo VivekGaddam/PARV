@@ -11,7 +11,6 @@ const UploadVideo = ({ closeModal }) => {
     
     useEffect(() => {
         document.body.classList.add("modal-open");
-        
         return () => {
             document.body.classList.remove("modal-open");
             const modalBackdrop = document.querySelector(".modal-backdrop");
